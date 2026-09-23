@@ -35,7 +35,8 @@ class TrOCRBackend:
         from transformers import TrOCRProcessor, VisionEncoderDecoderModel
         device = "cuda" if torch.cuda.is_available() else "cpu"  # cuda==HIP on AMD
         self.processor = TrOCRProcessor.from_pretrained(
-            self.MODEL_ID, cache_dir=os.environ.get("HF_HOME", "/models"))
+            self.MODEL_ID, cache_dir=os.environ.get("HF_HOME", "/models"),
+            use_fast=False)  # transformers 5.x fast-conversion broken for TrOCR; slow is pure-python
         self.model = VisionEncoderDecoderModel.from_pretrained(
             self.MODEL_ID, cache_dir=os.environ.get("HF_HOME", "/models"))
         self.model.to(device).eval()
