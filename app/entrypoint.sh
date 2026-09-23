@@ -2,7 +2,7 @@
 # Keeps the container alive for the harness; model loads ONCE in the daemon.
 # app.py execs per image stay thin clients (30s budget each).
 set -e
-export OCR_BACKEND=${OCR_BACKEND:-hf}
+export OCR_BACKEND=${OCR_BACKEND:-trocr}
 export HF_HOME=${HF_HOME:-/models}
 export HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
 nohup python3 /app/server.py > /var/log/ocr_server.log 2>&1 &

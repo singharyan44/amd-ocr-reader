@@ -1,4 +1,6 @@
-"""Backends: OCR_BACKEND=stub (contract tests, no download) | hf (Qwen2-VL-2B).
+"""Backends: OCR_BACKEND=trocr (default, TrOCR printed ~500MB, reliable) |
+  hf (Qwen2-VL-2B, stronger on adverse, 4GB download) |
+  stub (contract tests, no download).
 
 Prompt is type-agnostic on purpose — the graded set spans plates, signs,
 plaques, clean and adverse. Type-specific handling lives in rules.clean().
@@ -20,6 +22,32 @@ class StubBackend:
 
     def read(self, image):
         return "STOP", 0.0  # fixed string: verifies JSON path, never submitted
+
+
+class TrOCRBackend:
+    """Primary: OCR-specific, ~500MB download (reliable on flaky pools),
+    fast per-image, ~2GB VRAM (inside the 1-48GB band)."""
+    name = "trocr"
+    MODEL_ID = os.environ.get("OCR_MODEL_ID", "microsoft/trocr-base-printed")
+
+    def __init__(self):
+        import torch
+        from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+        device = "cuda" if torch.cuda.is_available() else "cpu"  # cuda==HIP on AMD
+        self.processor = TrOCRProcessor.from_pretrained(
+            self.MODEL_ID, cache_dir=os.environ.get("HF_HOME", "/models"))
+        self.model = VisionEncoderDecoderModel.from_pretrained(
+            self.MODEL_ID, cache_dir=os.environ.get("HF_HOME", "/models"))
+        self.model.to(device).eval()
+        self.device = device
+
+    def read(self, image):
+        import torch
+        pixel_values = self.processor(image, return_tensors="pt").pixel_values.to(self.device)
+        with torch.no_grad():
+            ids = self.model.generate(pixel_values, max_new_tokens=32)
+        text = self.processor.batch_decode(ids, skip_special_tokens=True)[0]
+        return text.strip(), 0.8
 
 
 class HFBackend:
@@ -58,7 +86,7 @@ _backends = {}
 
 
 def get_backend():
-    kind = os.environ.get("OCR_BACKEND", "stub")
+    kind = os.environ.get("OCR_BACKEND", "trocr")
     if kind not in _backends:
-        _backends[kind] = HFBackend() if kind == "hf" else StubBackend()
+        _backends[kind] = {"hf": HFBackend, "trocr": TrOCRBackend}[kind]()
     return _backends[kind]
