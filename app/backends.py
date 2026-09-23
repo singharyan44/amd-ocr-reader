@@ -32,19 +32,23 @@ class TrOCRBackend:
 
     def __init__(self):
         import torch
-        from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+        # NOTE: TrOCRProcessor.from_pretrained is broken in transformers 5.x
+        # (fast-conversion crash). Build feature extractor + slow tokenizer
+        # directly from the repo's vocab.json/merges.txt instead.
+        from transformers import AutoImageProcessor, RobertaTokenizer, VisionEncoderDecoderModel
         device = "cuda" if torch.cuda.is_available() else "cpu"  # cuda==HIP on AMD
-        self.processor = TrOCRProcessor.from_pretrained(
-            self.MODEL_ID, cache_dir=os.environ.get("HF_HOME", "/models"),
-            use_fast=False)  # transformers 5.x fast-conversion broken for TrOCR; slow is pure-python
+        cache = os.environ.get("HF_HOME", "/models")
+        self.feature = AutoImageProcessor.from_pretrained(self.MODEL_ID, cache_dir=cache)
+        self.processor = RobertaTokenizer.from_pretrained(
+            self.MODEL_ID, cache_dir=cache, use_fast=False)
         self.model = VisionEncoderDecoderModel.from_pretrained(
-            self.MODEL_ID, cache_dir=os.environ.get("HF_HOME", "/models"))
+            self.MODEL_ID, cache_dir=cache)
         self.model.to(device).eval()
         self.device = device
 
     def read(self, image):
         import torch
-        pixel_values = self.processor(image, return_tensors="pt").pixel_values.to(self.device)
+        pixel_values = self.feature(image, return_tensors="pt").pixel_values.to(self.device)
         with torch.no_grad():
             ids = self.model.generate(pixel_values, max_new_tokens=32)
         text = self.processor.batch_decode(ids, skip_special_tokens=True)[0]
