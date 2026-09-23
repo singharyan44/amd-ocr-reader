@@ -3,4 +3,5 @@ transformers>=4.44
 accelerate>=0.33
 pillow>=10
 qwen-vl-utils>=0.0.8
+sentencepiece>=0.2  # TrOCR processor tokenizer
 hf_transfer>=0.1.8  # fast resumable HF downloads (grading container fetches weights at runtime)
