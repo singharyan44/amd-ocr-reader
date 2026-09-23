@@ -1,0 +1,5 @@
+# Installed into /app/requirements.txt in the image (base ships torch+PIL only).
+transformers>=4.44
+accelerate>=0.33
+pillow>=10
+qwen-vl-utils>=0.0.8
