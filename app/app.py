@@ -33,7 +33,8 @@ def main():
     outdir = os.environ.get("APP_OUTPUT_DIR", "/app/output")
     os.makedirs(outdir, exist_ok=True)
     try:
-        text, conf = via_daemon(src)
+        _d = via_daemon(src)
+        text, conf = _d["text"], _d.get("confidence", 0.8)
     except Exception:
         img = prepare(src)
         text, conf = get_backend().read(img)
