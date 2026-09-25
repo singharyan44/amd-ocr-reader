@@ -2,9 +2,14 @@
 in scenes and multi-line signs. Split into line strips first, OCR each.
 OpenCV only (no downloads). Tuned for printed plates/signs, not handwriting.
 """
+import os
 import cv2
 import numpy as np
 from PIL import Image
+
+# Hard cap on strips per image: bounds worst-case time (each strip = 1 forward).
+# Real plates/signs hold a handful of lines; extra boxes are noise.
+MAX_STRIPS = int(os.environ.get("OCR_MAX_STRIPS", "8"))
 
 
 def segment_lines(pil_img, min_h=12):
@@ -23,6 +28,9 @@ def segment_lines(pil_img, min_h=12):
         if h < min_h or w < 30 or w * h < 0.002 * W * H:
             continue
         boxes.append((x, y, w, h))
+    boxes.sort(key=lambda b: (b[1], b[0]))
+    # cap: keep largest boxes (noise boxes are small), then restore reading order
+    boxes = sorted(boxes, key=lambda b: b[2] * b[3], reverse=True)[:MAX_STRIPS]
     boxes.sort(key=lambda b: (b[1], b[0]))
     # merge vertically overlapping boxes (one line split by gaps)
     merged = []
