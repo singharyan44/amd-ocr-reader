@@ -8,7 +8,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image
 from preprocess import enhance
-from rules import clean
+from detect import read_image
 from backends import get_backend
 
 BACKEND = None
@@ -23,8 +23,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(404); self.end_headers(); return
         n = int(self.headers.get("Content-Length", 0))
         img = enhance(Image.open(io.BytesIO(self.body_read(n))).convert("RGB"))
-        text, conf = BACKEND.read(img)
-        body = json.dumps({"text": clean(text), "confidence": float(conf)}).encode()
+        text, conf = read_image(BACKEND, img)
+        body = json.dumps({"text": text, "confidence": float(conf)}).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))

@@ -11,6 +11,7 @@ import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from preprocess import prepare
 from rules import clean
+from detect import read_image
 from backends import get_backend
 
 
@@ -37,8 +38,7 @@ def main():
         text, conf = _d["text"], _d.get("confidence", 0.8)
     except Exception:
         img = prepare(src)
-        text, conf = get_backend().read(img)
-        text = clean(text)
+        text, conf = read_image(get_backend(), img)
     with open(os.path.join(outdir, base + "_output.json"), "w") as f:
         json.dump({"text": text, "confidence": float(conf)}, f)
     print(json.dumps({"text": text, "confidence": float(conf)}))
