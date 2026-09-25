@@ -4,6 +4,7 @@
 #   bash /workspace/amd-ocr-reader/scripts/session_start.sh
 cd /workspace/amd-ocr-reader
 git stash 2>/dev/null; git pull 2>/dev/null || echo "git blocked, using local files"
+/opt/venv/bin/python -m pip install -q -r app/requirements.txt  # fresh pods wipe pip installs daily
 pkill -f app/server.py; sleep 2
 export OCR_BACKEND=trocr HF_HOME=/workspace/hf_cache
 /opt/venv/bin/python app/server.py > server.log 2>&1 &
